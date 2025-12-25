@@ -1,0 +1,13 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Database / instance
+instance/
+*.db
+
+# Celery runtime files
+celerybeat-schedule*
