@@ -1,0 +1,14 @@
+Flask
+Flask-SQLAlchemy
+flask-restful
+Flask-Migrate
+Flask-Security-Too
+Flask-JWT-Extended
+Flask-Mail
+Flask-Cors
+Celery
+Redis
+SQLAlchemy
+bcrypt
+itsdangerous
+PyJWT
