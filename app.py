@@ -39,9 +39,6 @@ from sqlalchemy import text
 def init_db(app):
     with app.app_context():
         # 🔥 FORCE DROP old tables (one-time fix for Postgres)
-        db.session.execute(text("DROP TABLE IF EXISTS user_roles CASCADE"))
-        db.session.execute(text("DROP TABLE IF EXISTS roles CASCADE"))
-        db.session.execute(text("DROP TABLE IF EXISTS users CASCADE"))
         db.session.commit()
         
         db.create_all()
