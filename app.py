@@ -1,15 +1,16 @@
-from flask import Flask,jsonify
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_restful import Api
 from flask_security import Security
-from flask_security.utils import hash_password
 from flask_jwt_extended import JWTManager
+from werkzeug.security import generate_password_hash
+import os
+
 from controllers.database import db
 from controllers.config import Config
 from controllers.user_datastore import user_datastore
-from werkzeug.security import generate_password_hash
 
-
+# --------------------- App Factory ---------------------
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -23,15 +24,16 @@ def create_app():
     # Initialize JWT
     JWTManager(app)
 
-
     # Initialize Flask-Security
-    security = Security(app, user_datastore)
+    Security(app, user_datastore)
 
     # Initialize API
     api = Api(app)
 
     return app, api
 
+
+# --------------------- DB Initialization ---------------------
 def init_db(app):
     with app.app_context():
         db.create_all()
@@ -47,7 +49,6 @@ def init_db(app):
         # -------------------- Admin User --------------------
         admin_user = user_datastore.find_user(email='adminmail@gmail.com')
         if not admin_user:
-            # Create new admin with werkzeug hash
             admin_user = user_datastore.create_user(
                 name='admin',
                 email='adminmail@gmail.com',
@@ -55,27 +56,28 @@ def init_db(app):
                 roles=[admin_role]
             )
         else:
-            # Update password hash if admin already exists
             admin_user.password = generate_password_hash('adminpss')
             if admin_role not in admin_user.roles:
                 admin_user.roles.append(admin_role)
 
-        # -------------------- Commit DB --------------------
         db.session.commit()
-        print("Database initialized and default admin created with proper hash.")
+        print("Database initialized successfully.")
 
-# --------------------- Create app and API ---------------------
+
+# --------------------- Create App ---------------------
 app, api = create_app()
+init_db(app)   # ✅ IMPORTANT: runs on Render also
+
 
 # --------------------- Import API Resources ---------------------
 from controllers.routes.authen_apis import LoginAPI, LogoutAPI, RegisterAPI
 from controllers.routes.admin_apis import (
-    ParkingLOTCreator, ParkingLOTViewer, ParkingLOTEditor, ParkingLOTDeleter, 
-    UserViewer, AdminDashSummary, Admin_AllBookings,AdminRevenue
+    ParkingLOTCreator, ParkingLOTViewer, ParkingLOTEditor, ParkingLOTDeleter,
+    UserViewer, AdminDashSummary, Admin_AllBookings, AdminRevenue
 )
 from controllers.routes.user_apis import (
-    User_ViewLots, User_ReserveSpot, User_ReleaseSpot, User_ParkHistory, 
-    User_Summary, User_CSVExport
+    User_ViewLots, User_ReserveSpot, User_ReleaseSpot,
+    User_ParkHistory, User_Summary, User_CSVExport
 )
 
 # --------------------- Add Routes ---------------------
@@ -90,9 +92,9 @@ api.add_resource(ParkingLOTViewer, '/api/admin/view_lots')
 api.add_resource(ParkingLOTEditor, '/api/admin/edit_lot/<int:lot_id>')
 api.add_resource(ParkingLOTDeleter, '/api/admin/delete_lot/<int:lot_id>')
 api.add_resource(UserViewer, '/api/admin/view_users')
-api.add_resource(AdminDashSummary,'/api/admin/summary')
-api.add_resource(Admin_AllBookings,'/api/admin/bookings')
-api.add_resource(AdminRevenue,'/api/admin/revenue_bylot')
+api.add_resource(AdminDashSummary, '/api/admin/summary')
+api.add_resource(Admin_AllBookings, '/api/admin/bookings')
+api.add_resource(AdminRevenue, '/api/admin/revenue_bylot')
 
 # User
 api.add_resource(User_ViewLots, '/api/user/view_lots')
@@ -100,8 +102,10 @@ api.add_resource(User_ReserveSpot, '/api/user/taking_spot')
 api.add_resource(User_ReleaseSpot, '/api/user/leaving_spot')
 api.add_resource(User_ParkHistory, '/api/user/booking_history')
 api.add_resource(User_Summary, '/api/user/summary')
-api.add_resource(User_CSVExport,'/api/user/export_csv')
+api.add_resource(User_CSVExport, '/api/user/export_csv')
 
+
+# --------------------- Test / Celery Routes ---------------------
 @app.route('/test-email')
 def test_email():
     from tasks import send_daily_reminders
@@ -111,29 +115,24 @@ def test_email():
         'task_id': task.id
     })
 
-@app.route("/test-email")
-def testemail():
-    from tasks import senddailyreminders
-    task = senddailyreminders.delay()
-    ...
 
 from tasks import sendparkingreminders, send_monthly_parking_report
-
 
 @app.route("/test-daily-reminder")
 def testdailyreminder():
     task = sendparkingreminders.delay()
     return {"message": "Daily reminder task queued!", "task_id": task.id}
 
+
 @app.route("/test-monthly-report")
 def testmonthlyreport():
     task = send_monthly_parking_report.delay()
     return {"message": "Monthly report task queued!", "task_id": task.id}
 
-import os
+
 # --------------------- Run App ---------------------
 if __name__ == "__main__":
-    init_db(app)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
