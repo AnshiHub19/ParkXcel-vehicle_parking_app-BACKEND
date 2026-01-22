@@ -12,3 +12,4 @@ SQLAlchemy
 bcrypt
 itsdangerous
 PyJWT
+psycopg2-binary
