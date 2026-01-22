@@ -10,7 +10,7 @@ class User(db.Model,UserMixin):
     id=db.Column(db.Integer,primary_key=True)
     name=db.Column(db.String(100),nullable=False)
     email=db.Column(db.String(200),unique=True,nullable=False)
-    password=db.Column(db.String(100),nullable=False)
+    password = db.Column(db.Text, nullable=False)
     active=db.Column(db.Boolean(),default=True)
 
     fs_uniquifier=db.Column(db.String(250),unique=True,nullable=False, default=lambda: str(uuid.uuid4()))
